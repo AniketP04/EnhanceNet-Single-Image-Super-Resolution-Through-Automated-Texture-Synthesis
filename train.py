@@ -15,13 +15,9 @@ EnhanceNet Implementation in PyTorch by Erik Quintanilla
 Single Image Super Resolution 
 
 https://arxiv.org/abs/1612.07919/
-
-This program assumes GPU.
 '''
-
-#hyperparams 
+ 
 cuda = torch.cuda.is_available()
-#torch.cuda.empty_cache()
 height = 128
 width = 128
 channels = 3
@@ -34,27 +30,24 @@ hr_shape = (height, width)
 
 save_interval = 100 
 
-#build models 
 generator = Generator(residual_blocks=10)
 discriminator = Discriminator(input_shape=(channels, *hr_shape))
 features_2 = Vgg_Features(pool_layer_num = 9) #9 here is the actual index, but it's the second pooling layer 
 features_5 = Vgg_Features(pool_layer_num = 36) #36 here is the actual index, but it's the fifth pooling layer 
-#send to gpu 
+
 generator = generator.cuda()
 discriminator = discriminator.cuda()
 loss = torch.nn.MSELoss().cuda() 
 features_2.cuda()
 features_5.cuda() 
 
-#set optimizers 
 g_opti = torch.optim.Adam(generator.parameters(), lr=lr, betas=(b1, b2))
 d_opti = torch.optim.Adam(discriminator.parameters(), lr=lr, betas=(b1, b2))
 
-#set data geneator 
 curdir = ""
 imagedir = np.load(curdir + "_ids.npy")
-lowres = "M:/" + curdir + "_128/"
-highres = "M:/" + curdir + "_512/"
+lowres = "S:/" + curdir + "_128/"
+highres = "S:/" + curdir + "_512/"
 gen = Dataset(ids = imagedir, lr = lowres, hr = highres)
 train_loader = DataLoader(gen, batch_size=batch_size, shuffle=True, num_workers=0)
 train_loader = iter(train_loader)
@@ -63,9 +56,9 @@ load_weights = True
 
 if load_weights:
 	print("Loading old weights...")
-	tmp = torch.load("M:/Experiments/EnhanceNet-PyTorch/saved_models/generator_0_4800.pth")
+	tmp = torch.load("S:/EnhanceNet-PyTorch/saved_models/generator_0_4800.pth")
 	generator.load_state_dict(tmp)
-	tmp = torch.load("M:/Experiments/EnhanceNet-PyTorch/saved_models/discriminator_0_4800.pth")
+	tmp = torch.load("S:/EnhanceNet-PyTorch/saved_models/discriminator_0_4800.pth")
 	discriminator.load_state_dict(tmp)
 	print("Best old weights loaded!")
 
@@ -74,7 +67,6 @@ Tensor = torch.cuda.FloatTensor
 for epoch in range(n_epochs):
 	for i, (lr, hr) in enumerate(train_loader):
 	
-		#Variables so torch plays nice with autograd, valid and fake for discriminator 
 		lr = Variable(lr.type(Tensor))
 		hr = Variable(hr.type(Tensor))
 		valid = Variable(Tensor(np.ones((batch_size, *discriminator.output_shape))), requires_grad=False)
@@ -82,16 +74,11 @@ for epoch in range(n_epochs):
 		
 		'''Generator'''
 		
-		#reset grads 
 		g_opti.zero_grad() 
 		
-		#get our "fake" images from our generator
 		generated_hr = generator(lr) 
 		
-		#what does the discriminator think of these fake images?
 		verdict = discriminator(generated_hr) 
-		
-		#fetch loss
 		
 		#perceptual loss uses both the second and fifth pooling layer.
 		#_2, _5 here denote the pooling layer
@@ -105,7 +92,7 @@ for epoch in range(n_epochs):
 		
 		total_feature_loss = (.2*feature_loss_2) + feature_loss_5
 		
-		g_loss = loss(verdict, valid) +  total_feature_loss #ENET-PA
+		g_loss = loss(verdict, valid) +  total_feature_loss 
 		
 		#backpop that loss
 		g_loss.backward()
@@ -116,7 +103,6 @@ for epoch in range(n_epochs):
 
 		d_opti.zero_grad() 
 		
-		#we do a shuffle on the true and fake images so it's not trivial which is which.
 		hr_imgs = torch.cat([discriminator(hr), discriminator(generated_hr.detach())], dim=0)
 		hr_labels = torch.cat([valid, fake], dim=0)
 		idxs = list(range(len(hr_labels)))
