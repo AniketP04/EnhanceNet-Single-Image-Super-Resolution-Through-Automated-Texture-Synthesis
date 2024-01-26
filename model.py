@@ -9,8 +9,6 @@ EnhanceNet Implementation in PyTorch by Erik Quintanilla
 Single Image Super Resolution 
 
 https://arxiv.org/abs/1612.07919/
-
-This program assumes GPU.
 '''
 
 class ResidualBlock(nn.Module):
