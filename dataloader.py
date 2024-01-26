@@ -21,10 +21,8 @@ class Dataset(Dataset):
 		filename = self.dir[index] 
 		lower = cv2.imread(self.lr + filename,1)
 		higher = cv2.imread(self.hr  + filename,1) 
-		#transpose so pytorch plays nice 
 		lower= lower.transpose((2, 0, 1))
 		higher = higher.transpose((2, 0, 1))		
-		#pass numpy arrays to torch and make float tensors.
 		lower = torch.from_numpy(lower).float()
 		higher =  torch.from_numpy(higher).float()
 		return lower, higher
